@@ -273,13 +273,4 @@ C:\Program Files\nodejs\npm.cmd
 
 ------------------------------------------------------------------------
 
-# ขั้นตอนถัดไป
 
-1.  ติดตั้ง Visual Studio Code
-2.  สร้างโฟลเดอร์โปรเจกต์ n8n
-3.  เขียน `docker-compose.yml`
-4.  ติดตั้ง n8n แบบ Localhost
-5.  เพิ่ม PostgreSQL
-6.  เพิ่ม pgAdmin
-7.  เพิ่ม Redis
-8.  เชื่อมต่อ AI และ IoT
