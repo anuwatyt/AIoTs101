@@ -1,1 +1,13 @@
 .env
+.env.*.local
+
+# Mosquitto credentials (generated locally, contains password hashes)
+mosquitto/config/passwordfile
+
+# Logs
+*.log
+
+# OS / editor artifacts
+Thumbs.db
+.DS_Store
+.vscode/
