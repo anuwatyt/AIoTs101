@@ -1,6 +1,6 @@
 services:
   n8n:
-    image: n8nio/n8n:latest
+    image: n8nio/n8n:2.30.3
     container_name: n8n
     restart: unless-stopped
     ports:
@@ -18,10 +18,19 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 1g
+    cpus: 1.0
 
   nodered:
-    image: nodered/node-red:latest
+    image: nodered/node-red:5.0.1
     container_name: nodered
     restart: unless-stopped
     ports:
@@ -31,10 +40,19 @@ services:
     volumes:
       - nodered_data:/data
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:1880/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 512m
+    cpus: 0.5
 
   mosquitto:
-    image: eclipse-mosquitto:latest
+    image: eclipse-mosquitto:2.0.22
     container_name: mosquitto
     restart: unless-stopped
     ports:
@@ -44,9 +62,17 @@ services:
       - ./mosquitto/config:/mosquitto/config
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "pidof mosquitto || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    mem_limit: 256m
+    cpus: 0.5
 
   ngrok:
-    image: ngrok/ngrok:latest
+    image: ngrok/ngrok:3.39.9-alpine
     container_name: ngrok
     restart: unless-stopped
     environment:
@@ -58,7 +84,16 @@ services:
     ports:
       - "4040:4040"
     depends_on:
-      - n8n
+      n8n:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4040/api/tunnels || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 128m
+    cpus: 0.25
 
 volumes:
   n8n_data:
