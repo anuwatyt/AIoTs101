@@ -98,16 +98,18 @@ Copy-Item .env.example .env
 ### ขั้นที่ 4 — แก้ไขค่าในไฟล์ .env
 
 ```env
-N8N_BASIC_AUTH_USER=admin
-N8N_BASIC_AUTH_PASSWORD=changeme
 N8N_ENCRYPTION_KEY=replace_with_a_long_random_string
 NGROK_AUTHTOKEN=<authtoken จาก Ngrok Dashboard>
 NGROK_DOMAIN=<static domain จาก Ngrok เช่น xxxxx.ngrok-free.app>
 ```
 
-> ควรเปลี่ยน `N8N_BASIC_AUTH_PASSWORD` และ `N8N_ENCRYPTION_KEY` ให้เป็นค่า
-> ที่คาดเดายาก โดยเฉพาะ `N8N_ENCRYPTION_KEY` **ห้ามเปลี่ยนภายหลัง**
-> เพราะจะทำให้ Credentials เดิมที่เข้ารหัสไว้ใช้งานไม่ได้
+> ควรเปลี่ยน `N8N_ENCRYPTION_KEY` ให้เป็นค่าที่คาดเดายาก และ
+> **ห้ามเปลี่ยนภายหลัง** เพราะจะทำให้ Credentials เดิมที่เข้ารหัสไว้
+> ใช้งานไม่ได้
+>
+> n8n เวอร์ชันปัจจุบันไม่รองรับ Login ผ่านตัวแปร Basic Auth
+> (`N8N_BASIC_AUTH_*`) แล้ว — ระบบ Login จะใช้บัญชี Owner ที่สร้างเอง
+> ในขั้นตอนที่ 7 แทน
 
 ### ขั้นที่ 5 — สั่งรัน Container ทั้งหมด
 
@@ -140,7 +142,9 @@ ngrok       ngrok/ngrok:latest       Up
 | Node-RED | http://localhost:1880 |
 | Ngrok Web Inspector | http://localhost:4040 |
 
-ใส่ Username/Password ของ n8n ตามที่ตั้งไว้ใน `.env`
+เข้า n8n ครั้งแรกจะเจอหน้า **"Set up owner account"** ให้กรอกอีเมลและ
+ตั้งรหัสผ่านเอง (ไม่ใช่ค่าใน `.env`) ระบบจะจำบัญชีนี้ไว้ใน Volume
+`n8n_data` ครั้งต่อไปจะขึ้นหน้า Login ปกติ
 (Node-RED ยังไม่ได้ตั้ง Login เริ่มต้น เข้าใช้งานได้ทันที)
 
 ### ขั้นที่ 8 — ทดสอบ MQTT Broker
@@ -183,7 +187,8 @@ docker exec -it mosquitto mosquitto_pub -h localhost -t "test/topic" -m "Hello n
 | เข้า `localhost:5678` ไม่ได้ | Docker Desktop ยังไม่รัน | เปิด Docker Desktop รอจน Engine Running |
 | Container ขึ้น Exit ทันที | ไม่มีไฟล์ `.env` | สร้างไฟล์ `.env` ตามขั้นที่ 3-4 |
 | Port 5678 ถูกใช้งานอยู่ | มีโปรแกรมอื่นใช้ Port เดียวกัน | แก้ `ports` เป็น `"5679:5678"` แล้วเข้า `localhost:5679` |
-| ลืม Password Basic Auth | - | ลบ Container แล้วแก้ `.env` ใหม่ (ข้อมูล Workflow ไม่หาย เพราะอยู่ใน Volume) |
+| ลืม Password บัญชี Owner ของ n8n | - | ลบ Volume `n8n_data` แล้วรันใหม่เพื่อสร้างบัญชี Owner อีกครั้ง (Workflow เดิมจะหายเพราะเก็บใน Volume เดียวกัน) |
+| เข้า `http://localhost:5678` แล้ว Login ไม่ผ่าน หรือขึ้น "configured to use a secure cookie" | `N8N_PROTOCOL=https` ทำให้ n8n ใช้ Secure Cookie ซึ่งใช้ไม่ได้กับ http | ตรวจสอบว่ามี `N8N_SECURE_COOKIE=false` ใน `docker-compose.yml` แล้วรัน `docker compose up -d --force-recreate n8n` |
 | n8n ต่อ MQTT ไม่ได้ | ใช้ `localhost` เป็น Host ใน MQTT Node | ใช้ชื่อ Service `mosquitto` แทน |
 | Ngrok ขึ้น `ERR_NGROK_...` หรือ Container Exit ทันที | ไม่ได้ตั้ง `NGROK_AUTHTOKEN` หรือค่าไม่ถูกต้อง | ตรวจสอบค่า `NGROK_AUTHTOKEN` ใน `.env` |
 | Ngrok Domain ใช้ไม่ได้ (`domain not found`) | ยังไม่ได้สร้าง Static Domain หรือพิมพ์ `NGROK_DOMAIN` ผิด | สร้าง Static Domain ที่ dashboard.ngrok.com/domains |
