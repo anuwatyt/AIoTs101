@@ -9,13 +9,11 @@ services:
       - N8N_HOST=${NGROK_DOMAIN}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
+      - N8N_SECURE_COOKIE=false
       - NODE_ENV=production
       - WEBHOOK_URL=https://${NGROK_DOMAIN}/
       - GENERIC_TIMEZONE=Asia/Bangkok
       - TZ=Asia/Bangkok
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
     volumes:
       - n8n_data:/home/node/.n8n
