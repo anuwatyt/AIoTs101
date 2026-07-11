@@ -54,13 +54,11 @@ services:
       - N8N_HOST=${NGROK_DOMAIN}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
+      - N8N_SECURE_COOKIE=false
       - NODE_ENV=production
       - WEBHOOK_URL=https://${NGROK_DOMAIN}/
       - GENERIC_TIMEZONE=Asia/Bangkok
       - TZ=Asia/Bangkok
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
     volumes:
       - n8n_data:/home/node/.n8n
@@ -122,6 +120,11 @@ volumes:
 > `localhost`) เพื่อให้ Webhook Node ของ n8n สร้าง URL ที่เรียกจาก
 > ภายนอกได้จริง ส่วนหน้า Editor ยังเข้าผ่าน `http://localhost:5678`
 > ได้ตามปกติจากเครื่องตัวเอง
+>
+> เนื่องจาก `N8N_PROTOCOL=https` ทำให้ n8n ตั้ง Cookie แบบ Secure
+> โดย Default ซึ่งใช้กับการเข้าผ่าน `http://localhost:5678` (ไม่ใช่
+> https) ไม่ได้ จึงต้องเพิ่ม `N8N_SECURE_COOKIE=false` เพื่อให้ Login
+> จากเครื่องตัวเองผ่าน http ทำงานได้ตามปกติ
 
 ------------------------------------------------------------------------
 
@@ -179,16 +182,17 @@ Copy-Item .env.example .env
 ### 2. แก้ไขไฟล์ .env
 
 ``` env
-N8N_BASIC_AUTH_USER=admin
-N8N_BASIC_AUTH_PASSWORD=changeme
 N8N_ENCRYPTION_KEY=replace_with_a_long_random_string
 NGROK_AUTHTOKEN=<authtoken จาก Ngrok Dashboard>
 NGROK_DOMAIN=<static domain จาก Ngrok เช่น xxxxx.ngrok-free.app>
 ```
 
-> ควรเปลี่ยน `N8N_BASIC_AUTH_PASSWORD` และ `N8N_ENCRYPTION_KEY`
-> เป็นค่าที่คาดเดายาก โดยเฉพาะ `N8N_ENCRYPTION_KEY` ห้ามเปลี่ยนภายหลัง
-> เพราะจะทำให้ Credentials ที่เข้ารหัสไว้เดิมใช้งานไม่ได้
+> ควรเปลี่ยน `N8N_ENCRYPTION_KEY` เป็นค่าที่คาดเดายาก และห้ามเปลี่ยน
+> ภายหลัง เพราะจะทำให้ Credentials ที่เข้ารหัสไว้เดิมใช้งานไม่ได้
+>
+> n8n เวอร์ชันปัจจุบันเลิกรองรับ Login ผ่านตัวแปร `N8N_BASIC_AUTH_*`
+> แล้ว (ตัวแปรนี้ถูก Deprecate) การ Login จะใช้บัญชี Owner ที่สร้างเอง
+> ในขั้นตอนที่ 5 แทน
 
 ### 3. สั่งรัน Container
 
@@ -222,7 +226,9 @@ n8n (จากภายนอกผ่าน Ngrok): https://<NGROK_DOMAIN>
 Node-RED:               http://localhost:1880
 ```
 
-ใส่ Username / Password ของ n8n ตามที่ตั้งไว้ใน `.env`
+เข้าครั้งแรกจะเจอหน้า **Set up owner account** ให้กรอกอีเมลและ
+ตั้งรหัสผ่านเอง (ไม่ใช้ค่าใน `.env` อีกต่อไป) ระบบจะบันทึกบัญชีนี้ไว้
+ใน Volume `n8n_data` ครั้งต่อไปจะขึ้นหน้า Login ตามปกติ
 (Node-RED ยังไม่ได้ตั้ง Login เริ่มต้น เข้าใช้งานได้ทันที)
 
 ### 6. ตรวจสอบ Ngrok Tunnel
@@ -295,11 +301,21 @@ docker exec -it mosquitto mosquitto_pub -h localhost -t "test/topic" -m "Hello n
                                                             แล้วเข้า
                                                             localhost:5679
 
-  ลืม Password Basic Auth         -                        ลบ Container แล้ว
-                                                            แก้ .env ใหม่
-                                                            (ข้อมูล Workflow
-                                                            ไม่หาย เพราะอยู่
-                                                            ใน Volume)
+  ลืม Password บัญชี Owner        -                        ลบ Volume n8n_data
+  ของ n8n                                                  แล้วรันใหม่เพื่อ
+                                                            สร้างบัญชี Owner
+                                                            อีกครั้ง (Workflow
+                                                            เดิมจะหายเพราะอยู่
+                                                            ใน Volume เดียวกัน)
+
+  เข้า localhost:5678 แล้ว         `N8N_PROTOCOL=https` ทำให้    ตรวจสอบว่ามี
+  Login ไม่ผ่าน หรือขึ้น            n8n ใช้ Secure Cookie          `N8N_SECURE_
+  "secure cookie"                 ซึ่งใช้กับ http ไม่ได้         COOKIE=false`
+                                                                ใน docker-compose
+                                                                .yml แล้วรัน
+                                                                `docker compose
+                                                                up -d --force-
+                                                                recreate n8n`
 
   n8n ต่อ MQTT ไม่ได้              ใช้ `localhost` เป็น Host        ใช้ชื่อ Service
                                     ใน MQTT Node (คนละ            `mosquitto` แทน
